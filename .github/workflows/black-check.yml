@@ -1,0 +1,39 @@
+name: Black Code Formatting Check
+
+on:
+  push:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  black-format-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install Poetry
+      uses: snok/install-poetry@v1
+      with:
+        version: 1.7.1
+        virtualenvs-create: true
+        
+    - name: Install Black with Poetry
+      run: |
+        poetry add --group dev black
+        
+    - name: Check formatting with Black
+      run: |
+        poetry run black --check --diff .
+        
+    # This step only runs if the check fails
+    - name: Formatting instructions
+      if: failure()
+      run: |
+        echo "::error::Black formatting check failed. Please run 'poetry run black .' locally to format your code."
+        exit 1
