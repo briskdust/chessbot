@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "chessbot"
+version = "0.1.0"
+description = ""
+authors = ["briskdust <briskdust@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+python-chess = "^1.999"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
