@@ -1,6 +1,7 @@
 import chess
 import time
 
+
 def evaluate_board(board):
     """
     Evaluate the current board state.
@@ -12,7 +13,12 @@ def evaluate_board(board):
     if board.is_checkmate():
         return -10000 if board.turn else 10000
 
-    if board.is_stalemate() or board.is_insufficient_material() or board.is_fifty_moves() or board.is_repetition(3):
+    if (
+        board.is_stalemate()
+        or board.is_insufficient_material()
+        or board.is_fifty_moves()
+        or board.is_repetition(3)
+    ):
         return 0
 
     # basic piece values
@@ -22,7 +28,7 @@ def evaluate_board(board):
         chess.BISHOP: 330,
         chess.ROOK: 500,
         chess.QUEEN: 900,
-        chess.KING: 20000
+        chess.KING: 20000,
     }
 
     # calculate material balance
@@ -45,7 +51,7 @@ def evaluate_board(board):
 
     # Mobility evaluation - reward the number of legal moves
     original_turn = board.turn
-    
+
     board.turn = chess.WHITE
     white_moves = len(list(board.legal_moves))
 
@@ -74,7 +80,7 @@ def minimax(board, depth, maximizing_player):
     legal_moves = list(board.legal_moves)
 
     if maximizing_player:
-        max_eval = float('-inf')
+        max_eval = float("-inf")
         for move in legal_moves:
             board.push(move)
             eval = minimax(board, depth - 1, False)
@@ -82,7 +88,7 @@ def minimax(board, depth, maximizing_player):
             max_eval = max(max_eval, eval)
         return max_eval
     else:
-        min_eval = float('inf')
+        min_eval = float("inf")
         for move in legal_moves:
             board.push(move)
             eval = minimax(board, depth - 1, True)
@@ -108,7 +114,7 @@ def find_best_move(board, depth):
     maximizing_player = board.turn == chess.WHITE
 
     best_move = None
-    best_value = float('-inf') if maximizing_player else float('inf')
+    best_value = float("-inf") if maximizing_player else float("inf")
 
     for move in legal_moves:
         board.push(move)
@@ -135,6 +141,7 @@ class MinimaxChessEngine:
     This engine evaluates the board state and selects the best move
     based on the Minimax algorithm with a specified depth.
     """
+
     def __init__(self, depth=3):
         self.depth = depth
 
@@ -155,6 +162,7 @@ class MinimaxChessEngine:
 
         return best_move
 
+
 # Demo
 def play_game():
     board = chess.Board()
@@ -173,6 +181,7 @@ def play_game():
 
     print("\nFinal Board:")
     print(board)
+
 
 if __name__ == "__main__":
     play_game()
