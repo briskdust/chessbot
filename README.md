@@ -5,8 +5,6 @@ A powerful Python-based chess engine that achieves approximately 2000 ELO streng
 ## Features
 
 - **Strong Engine**: ~2000 ELO rating through optimized minimax search with alpha-beta pruning
-- **Lichess Integration**: Play games automatically on Lichess through the Lichess Bot API
-- **Multiple Search Depths**: Configurable search depth to balance strength and move time
 - **Opening Book**: Basic opening theory implementation for stronger early game
 - **Position Evaluation**: Sophisticated evaluation function considering:
   - Material balance
@@ -14,6 +12,8 @@ A powerful Python-based chess engine that achieves approximately 2000 ELO streng
   - King safety
   - Pawn structure
   - Mobility
+- **Dynamic Search Depths**: Configurable search depth to balance strength and move time
+- **Lichess Integration**: Play games automatically on Lichess through the Lichess Bot API
 
 ## Requirements
 
@@ -122,3 +122,39 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Monte Carlo Tree Search implementation
 - Time management improvements
 - Support for chess variants
+
+---
+
+## TODO:
+
+- [x] **Basic Engine**: A basic Minimax engine with Alpha-beta pruning and transposition tables
+  - [x] Basic minimax implementation
+  - [x] Alpha-beta pruning
+  - [x] Transposition tables
+
+- [ ] **Lichess Integration**: Play games automatically on Lichess through the Lichess Bot API
+  - [ ] API authentication
+  - [ ] Game acceptance
+  - [ ] Automatic move submission
+  - [ ] Rating-based matching
+
+- [ ] **Opening Book**: Basic opening theory implementation for stronger early game
+  - [ ] Book database integration
+  - [ ] Weighted move selection
+  - [ ] Book learning capabilities
+
+- [ ] **Dynamic Search Depths**: Configurable search depth to balance strength and move time
+  - [ ] Dynamic depth adjustment
+  - [ ] Time management system
+  - [ ] Iterative deepening
+
+- [ ] **Position Evaluation**: Sophisticated evaluation function considering:
+  - [x] Material balance
+  - [ ] Piece positioning
+  - [ ] King safety
+  - [ ] Pawn structure
+  - [ ] Mobility
+
+### Current Progress
+
+Completed: 1/5 main features
