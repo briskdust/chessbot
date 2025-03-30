@@ -5,7 +5,7 @@ import chess
 # Demo
 def play_game():
     board = chess.Board()
-    engine = MinimaxEngine(depth=4)
+    engine = MinimaxEngine(depth=5)
 
     round_number = 2
 
