@@ -64,11 +64,13 @@ def evaluate_board(board):
     return evaluation
 
 
-def minimax(board, depth, maximizing_player):
+def minimax(board, depth, alpha, beta, maximizing_player):
     """
-    Minimax algorithm implementation.
+    Minimax algorithm with Alpha-Beta pruning implementation.
     :param board: Current board state
     :param depth: Depth of the search
+    :param alpha: Alpha value (best already explored option for MAX)
+    :param beta: Beta value (best already explored option for MIN)
     :param maximizing_player: True if it's the maximizing player's turn
     :return: Evaluation score for the board
     """
@@ -79,26 +81,30 @@ def minimax(board, depth, maximizing_player):
     legal_moves = list(board.legal_moves)
 
     if maximizing_player:
-        max_eval = float("-inf")
+        v = float("-inf")
         for move in legal_moves:
             board.push(move)
-            eval = minimax(board, depth - 1, False)
+            v = max(v, minimax(board, depth - 1, alpha, beta, False))
             board.pop()
-            max_eval = max(max_eval, eval)
-        return max_eval
+            alpha = max(alpha, v)
+            if beta <= alpha:
+                break  # Beta cutoff
+        return v
     else:
-        min_eval = float("inf")
+        v = float("inf")
         for move in legal_moves:
             board.push(move)
-            eval = minimax(board, depth - 1, True)
+            v = min(v, minimax(board, depth - 1, alpha, beta, True))
             board.pop()
-            min_eval = min(min_eval, eval)
-        return min_eval
+            beta = min(beta, v)
+            if beta <= alpha:
+                break  # Alpha cutoff
+        return v
 
 
 def find_best_move(board, depth):
     """
-    Find the best move using minimax algorithm.
+    Find the best move using minimax algorithm with Alpha-Beta pruning.
     :param board: Current board state
     :param depth: Depth of the search
     :return: Best move and its evaluation score
@@ -109,17 +115,21 @@ def find_best_move(board, depth):
         return legal_moves[0], evaluate_board(board)
 
     # Determine if it's the maximizing player's turn
-    # If it's white's turn, maximizing_player is True; otherwise, it's False
     maximizing_player = board.turn == chess.WHITE
 
     best_move = None
     best_value = float("-inf") if maximizing_player else float("inf")
+    alpha = float("-inf")
+    beta = float("inf")
 
     for move in legal_moves:
         board.push(move)
 
-        # Fetch the evaluation score for the move
-        board_value = minimax(board, depth - 1, not maximizing_player)
+        # Fetch the evaluation score for the move using Alpha-Beta pruning
+        if maximizing_player:
+            board_value = minimax(board, depth - 1, alpha, beta, False)
+        else:
+            board_value = minimax(board, depth - 1, alpha, beta, True)
 
         board.pop()
 
@@ -127,8 +137,10 @@ def find_best_move(board, depth):
         if maximizing_player and board_value > best_value:
             best_value = board_value
             best_move = move
+            alpha = max(alpha, best_value)
         elif not maximizing_player and board_value < best_value:
             best_value = board_value
             best_move = move
+            beta = min(beta, best_value)
 
     return best_move, best_value
