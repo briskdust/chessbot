@@ -1,6 +1,8 @@
 import chess
 import random
 import time
+import os
+import chess.polyglot
 
 
 def evaluate_board(board):
@@ -472,3 +474,69 @@ def should_extend_search(board, move):
     # Can add more conditions for critical positions
 
     return False
+
+
+class OpeningBook:
+    """
+    Manages access to a Polyglot opening book.
+    Provides methods to retrieve moves from the opening book based on the current board position.
+    """
+
+    def __init__(self, book_path=None):
+        """
+        Initialize the opening book.
+        :param book_path: Path to the Polyglot opening book file
+        """
+        self.book_path = book_path
+        self.enabled = book_path is not None and os.path.exists(book_path)
+        self._reader = None
+
+    def get_move(self, board, minimum_weight=1):
+        """
+        Get a move from the opening book for the current board position.
+        :param board: Current board state
+        :param minimum_weight: Minimum weight for opening moves
+        :return: A selected move or None if no move is found
+        """
+        if not self.enabled:
+            return None
+
+        try:
+            with chess.polyglot.open_reader(self.book_path) as reader:
+                try:
+                    # Try weighted choice based on entry weights
+                    entry = reader.weighted_choice(board)
+                    return entry.move
+                except IndexError:
+                    # No entry found
+                    return None
+        except Exception as e:
+            print(f"Error accessing opening book: {e}")
+            return None
+
+    def get_all_moves(self, board, minimum_weight=1):
+        """
+        Get all possible moves from the opening book for the current board position.
+        :param board: Current board state
+        :param minimum_weight: Minimum weight for opening moves
+        :return: List of (move, weight) tuples or empty list if no moves found
+        """
+        if not self.enabled:
+            return []
+
+        moves = []
+        try:
+            with chess.polyglot.open_reader(self.book_path) as reader:
+                for entry in reader.find_all(board, minimum_weight=minimum_weight):
+                    moves.append((entry.move, entry.weight))
+            return moves
+        except Exception as e:
+            print(f"Error accessing opening book: {e}")
+            return []
+
+    def is_enabled(self):
+        """
+        Check if opening book is enabled and available.
+        :return: True if the opening book is enabled and file exists
+        """
+        return self.enabled
