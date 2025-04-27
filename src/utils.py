@@ -1,5 +1,6 @@
 import chess
 import random
+import time
 
 
 def evaluate_board(board):
@@ -190,7 +191,16 @@ class TranspositionTable:
         return self.table.get(hash_key)
 
 
-def minimax(board, depth, alpha, beta, maximizing_player, tt):
+def minimax(
+    board,
+    depth,
+    alpha,
+    beta,
+    maximizing_player,
+    tt,
+    dynamic_depth=True,
+    max_depth_extension=2,
+):
     """
     Minimax algorithm with Alpha-Beta pruning and transposition table.
     :param board: Current board state
@@ -199,6 +209,8 @@ def minimax(board, depth, alpha, beta, maximizing_player, tt):
     :param beta: Beta value (best already explored option for MIN)
     :param maximizing_player: True if it's the maximizing player's turn
     :param tt: Transposition table
+    :param dynamic_depth: Whether to use dynamic depth adjustment
+    :param max_depth_extension: Maximum additional depth allowed through extensions
     :return: Evaluation score for the board
     """
 
@@ -216,17 +228,41 @@ def minimax(board, depth, alpha, beta, maximizing_player, tt):
             return tt_entry["score"]
 
     # Check for terminal conditions
-    if depth == 0 or board.is_game_over():
+    if depth <= 0 or board.is_game_over():
         return evaluate_board(board)
 
     legal_moves = list(board.legal_moves)
     best_move = None
 
+    # Implement move ordering for better pruning efficiency
+    # Order moves to examine captures and checks first
+    if dynamic_depth:
+        legal_moves.sort(key=lambda move: board.is_capture(move), reverse=True)
+
     if maximizing_player:
         best_value = float("-inf")
         for move in legal_moves:
             board.push(move)
-            value = minimax(board, depth - 1, alpha, beta, False, tt)
+
+            # Dynamic depth adjustment with a limit on extension
+            extension = 0
+            if (
+                dynamic_depth
+                and max_depth_extension > 0
+                and should_extend_search(board, move)
+            ):
+                extension = 1
+
+            value = minimax(
+                board,
+                depth - 1 + extension,
+                alpha,
+                beta,
+                False,
+                tt,
+                dynamic_depth,
+                max_depth_extension - extension,
+            )
             board.pop()
 
             if value > best_value:
@@ -248,7 +284,26 @@ def minimax(board, depth, alpha, beta, maximizing_player, tt):
         best_value = float("inf")
         for move in legal_moves:
             board.push(move)
-            value = minimax(board, depth - 1, alpha, beta, True, tt)
+
+            # Dynamic depth adjustment with a limit on extension
+            extension = 0
+            if (
+                dynamic_depth
+                and max_depth_extension > 0
+                and should_extend_search(board, move)
+            ):
+                extension = 1
+
+            value = minimax(
+                board,
+                depth - 1 + extension,
+                alpha,
+                beta,
+                True,
+                tt,
+                dynamic_depth,
+                max_depth_extension - extension,
+            )
             board.pop()
 
             if value < best_value:
@@ -268,12 +323,14 @@ def minimax(board, depth, alpha, beta, maximizing_player, tt):
         return best_value
 
 
-def find_best_move(board, depth, tt=None):
+def find_best_move(board, depth, tt=None, dynamic_depth=True, max_depth_extension=2):
     """
     Find the best move using minimax algorithm with Alpha-Beta pruning and transposition table.
     :param board: Current board state
     :param depth: Depth of the search
     :param tt: Transposition table
+    :param dynamic_depth: Whether to use dynamic depth adjustment
+    :param max_depth_extension: Maximum additional depth allowed through extensions
     :return: Best move and its evaluation score
     """
     if tt is None:
@@ -290,10 +347,32 @@ def find_best_move(board, depth, tt=None):
     alpha = float("-inf")
     beta = float("inf")
 
+    # Implement move ordering for better pruning efficiency
+    if dynamic_depth:
+        legal_moves.sort(key=lambda move: board.is_capture(move), reverse=True)
+
     for move in legal_moves:
         board.push(move)
 
-        value = minimax(board, depth - 1, alpha, beta, not maximizing_player, tt)
+        # Dynamic depth adjustment with limit
+        extension = 0
+        if (
+            dynamic_depth
+            and max_depth_extension > 0
+            and should_extend_search(board, move)
+        ):
+            extension = 1
+
+        value = minimax(
+            board,
+            depth - 1 + extension,
+            alpha,
+            beta,
+            not maximizing_player,
+            tt,
+            dynamic_depth,
+            max_depth_extension - extension,
+        )
 
         board.pop()
 
@@ -310,3 +389,86 @@ def find_best_move(board, depth, tt=None):
     tt.store(board, depth, best_value, EXACT, best_move)
 
     return best_move, best_value
+
+
+def iterative_deepening_search(
+    board,
+    max_depth,
+    time_limit=None,
+    tt=None,
+    dynamic_depth=True,
+    max_depth_extension=2,
+):
+    """
+    Perform iterative deepening search to find the best move.
+    Gradually increases search depth and can stop based on time constraints.
+
+    :param board: Current board state
+    :param max_depth: Maximum depth to search
+    :param time_limit: Maximum time in seconds for the search (None for no limit)
+    :param tt: Transposition table
+    :param dynamic_depth: Whether to use dynamic depth adjustment
+    :param max_depth_extension: Maximum additional depth allowed through extensions
+    :return: Best move, its evaluation score, and actual depth reached
+    """
+    if tt is None:
+        tt = TranspositionTable()
+
+    start_time = time.time()
+    best_move = None
+    best_value = 0
+    reached_depth = 0
+
+    # For single legal move, return immediately
+    legal_moves = list(board.legal_moves)
+    if len(legal_moves) == 1:
+        return legal_moves[0], evaluate_board(board), 0
+
+    # Start with depth 1 and iteratively increase
+    for current_depth in range(1, max_depth + 1):
+        # Check if we've exceeded our time limit
+        if time_limit and time.time() - start_time > time_limit * 0.8:
+            # Return the best move from the previous iteration
+            # We don't want to use partial results from an incomplete search
+            break
+
+        move, value = find_best_move(
+            board, current_depth, tt, dynamic_depth, max_depth_extension
+        )
+
+        # Update our best move
+        best_move = move
+        best_value = value
+        reached_depth = current_depth
+
+        # Early termination conditions
+        # If we found a checkmate, no need to search deeper
+        if abs(value) > 9000:  # Close to checkmate score
+            break
+
+    return best_move, best_value, reached_depth
+
+
+def should_extend_search(board, move):
+    """
+    Determines if the search depth should be dynamically extended for this move.
+    Extends search for captures, checks, and critical positions.
+
+    :param board: Current board state
+    :param move: The move to evaluate
+    :return: True if search should be extended, False otherwise
+    """
+    # Extend search for captures
+    if board.is_capture(move):
+        return True
+
+    # Extend search for checks
+    board.push(move)
+    is_check = board.is_check()
+    board.pop()
+    if is_check:
+        return True
+
+    # Can add more conditions for critical positions
+
+    return False

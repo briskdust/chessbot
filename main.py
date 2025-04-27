@@ -1,11 +1,16 @@
 from src.minimax_engine import MinimaxEngine
 import chess
+import time
 
 
 # Demo
 def play_game():
     board = chess.Board()
-    engine = MinimaxEngine(depth=5)
+    # Initialize engine with max depth 5, 128MB transposition table, 5 second time limit,
+    # dynamic depth adjustment, and max depth extension of 2
+    engine = MinimaxEngine(
+        depth=5, tt_size_mb=128, time_limit=5, dynamic_depth=True, max_depth_extension=2
+    )
 
     round_number = 2
 
@@ -19,7 +24,12 @@ def play_game():
         print("Current Board:")
         print(board)
 
+        # Get time before move calculation to test time management
+        start_time = time.time()
         move = engine.get_move(board)
+        actual_time = time.time() - start_time
+        print(f"Actual time used: {actual_time:.2f} seconds")
+
         board.push(move)
 
     print("\nFinal Board:")
@@ -28,7 +38,7 @@ def play_game():
     # print the result of the game
     if board.is_checkmate():
         winner = "black" if board.turn else "white"
-        print(f"Game Over: {winner}wins(Checkmate)")
+        print(f"Game Over: {winner} wins (Checkmate)")
     elif board.is_stalemate():
         print("Game Over: Stalemate")
     elif board.is_insufficient_material():

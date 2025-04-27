@@ -97,9 +97,11 @@ ChessBot uses several key techniques to achieve approximately 2000 ELO strength:
 1. **Alpha-Beta Pruning**: Optimized minimax with alpha-beta pruning
 2. **Move Ordering**: Orders moves to improve alpha-beta efficiency
 3. **Transposition Tables**: Caches previously evaluated positions
-4. **Iterative Deepening**: Progressively increases search depth
-5. **Quiescence Search**: Ensures stable position evaluation after captures
-6. **Late Move Reduction**: Reduces search depth for less promising moves
+4. **Iterative Deepening**: Progressively increases search depth with time constraints
+5. **Dynamic Depth Adjustment**: Extends search depth for captures and checks
+6. **Time Management**: Allocates thinking time based on position complexity
+7. **Quiescence Search**: Ensures stable position evaluation after captures (planned)
+8. **Late Move Reduction**: Reduces search depth for less promising moves (planned)
 
 ## Contributing
 
@@ -143,10 +145,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [ ] Weighted move selection
   - [ ] Book learning capabilities
 
-- [ ] **Dynamic Search Depths**: Configurable search depth to balance strength and move time
-  - [ ] Dynamic depth adjustment
-  - [ ] Time management system
-  - [ ] Iterative deepening
+- [x] **Dynamic Search Depths**: Configurable search depth to balance strength and move time
+  - [x] Dynamic depth adjustment
+  - [x] Time management system
+  - [x] Iterative deepening
 
 - [ ] **Position Evaluation**: Sophisticated evaluation function considering:
   - [x] Material balance
@@ -157,4 +159,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Current Progress
 
-Completed: 1/5 main features
+Completed: 2/5 main features
