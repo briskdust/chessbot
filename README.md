@@ -72,11 +72,11 @@ engine:
   max_depth_extension: 2  # Maximum depth extension
   tt_size_mb: 128  # Transposition table size in MB
   time_limit: 5  # Default time limit in seconds
-  
+
 opening_book:
   use_book: true  # Whether to use the opening book
   book_path: "cerebellum.bin"  # Path to the opening book file
-  
+
 lichess:
   token: "YOUR_LICHESS_API_TOKEN"
   challenge:
@@ -151,7 +151,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] **Opening Book**: Basic opening theory implementation for stronger early game
   - [x] Book database integration
   - [x] Weighted move selection
-  - [ ] Book learning capabilities
 
 - [x] **Dynamic Search Depths**: Configurable search depth to balance strength and move time
   - [x] Dynamic depth adjustment
