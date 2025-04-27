@@ -30,19 +30,25 @@ cd chessbot
 # Install dependencies with Poetry
 poetry install
 
-# Configure your Lichess API token in config.yml
+# Configure your Lichess API token in config.yml and set up the opening book
 ```
+
+### Setting Up the Opening Book
+
+1. Download a Polyglot opening book file (e.g., Cerebellum)
+2. Place the .bin file in the project's root directory
+3. Update the `book_path` in your config.yml to point to your opening book file
 
 ## Usage
 
 ### Local Engine Testing
 
 ```bash
-# Start the engine in local mode
-poetry run python -m chessbot.engine
+# Start a game with the engine using settings from config.yml
+poetry run python main.py
 
-# Play against the engine
-poetry run python -m chessbot.play
+# Or specify a custom config file
+poetry run python main.py custom_config.yml
 ```
 
 ### Lichess Bot Mode
@@ -62,13 +68,15 @@ Edit the `config.yml` file to customize:
 ```yaml
 engine:
   search_depth: 5  # Default search depth
-  use_opening_book: true
-  evaluation:
-    material_weight: 1.0
-    position_weight: 0.2
-    king_safety_weight: 0.5
-    mobility_weight: 0.3
-
+  dynamic_depth: true  # Enable dynamic depth adjustment
+  max_depth_extension: 2  # Maximum depth extension
+  tt_size_mb: 128  # Transposition table size in MB
+  time_limit: 5  # Default time limit in seconds
+  
+opening_book:
+  use_book: true  # Whether to use the opening book
+  book_path: "cerebellum.bin"  # Path to the opening book file
+  
 lichess:
   token: "YOUR_LICHESS_API_TOKEN"
   challenge:
@@ -140,9 +148,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [ ] Automatic move submission
   - [ ] Rating-based matching
 
-- [ ] **Opening Book**: Basic opening theory implementation for stronger early game
-  - [ ] Book database integration
-  - [ ] Weighted move selection
+- [x] **Opening Book**: Basic opening theory implementation for stronger early game
+  - [x] Book database integration
+  - [x] Weighted move selection
   - [ ] Book learning capabilities
 
 - [x] **Dynamic Search Depths**: Configurable search depth to balance strength and move time
@@ -159,4 +167,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Current Progress
 
-Completed: 2/5 main features
+Completed: 3/5 main features

@@ -8,6 +8,7 @@ class MinimaxEngine:
     This engine evaluates the board state and selects the best move
     based on the Minimax algorithm with Alpha-Beta pruning,
     transposition tables, and iterative deepening.
+    It can also use an opening book for the early game.
     """
 
     def __init__(
@@ -17,6 +18,8 @@ class MinimaxEngine:
         time_limit=None,
         dynamic_depth=True,
         max_depth_extension=2,
+        book_path=None,
+        use_book=True,
     ):
         """
         Initialize the engine.
@@ -25,20 +28,33 @@ class MinimaxEngine:
         :param time_limit: Time limit for move calculation in seconds (None for no limit)
         :param dynamic_depth: Whether to use dynamic depth adjustment
         :param max_depth_extension: Maximum additional depth allowed through extensions
+        :param book_path: Path to the opening book file
+        :param use_book: Whether to use the opening book
         """
         self.max_depth = depth
         self.time_limit = time_limit
         self.dynamic_depth = dynamic_depth
         self.max_depth_extension = max_depth_extension
         self.transposition_table = TranspositionTable(size_mb=tt_size_mb)
+        self.opening_book = OpeningBook(book_path) if use_book else None
+        self.use_book = use_book
 
     def get_move(self, board, time_limit=None):
         """
-        Get the best move for the current board state using iterative deepening.
+        Get the best move for the current board state.
+        First tries the opening book if enabled, then falls back to search.
         :param board: Current board state
         :param time_limit: Optional time limit override for this move
         :return: Best move for the current board state
         """
+        # Try opening book first if enabled
+        if self.use_book and self.opening_book and self.opening_book.is_enabled():
+            book_move = self.opening_book.get_move(board)
+            if book_move:
+                print(f"Book Move: {board.san(book_move)}")
+                return book_move
+
+        # Fall back to search if no book move or book is disabled
         # Use instance time limit if no override is provided
         actual_time_limit = time_limit if time_limit is not None else self.time_limit
 

@@ -1,0 +1,19 @@
+engine:
+  search_depth: 5  # Default search depth
+  dynamic_depth: true  # Enable dynamic depth adjustment
+  max_depth_extension: 2  # Maximum depth extension
+  tt_size_mb: 128  # Transposition table size in MB
+  time_limit: 5  # Default time limit in seconds
+
+opening_book:
+  use_book: true  # Whether to use the opening book
+  book_path: "Cerebellum3Merge.bin"  # Path to the opening book file
+
+lichess:
+  token: "YOUR_LICHESS_API_TOKEN"  # Lichess API token
+  challenge:
+    accept_rated: true
+    accept_casual: true
+    min_rating: 1600
+    max_rating: 2200
+  concurrency: 1  # Number of games to play simultaneously
