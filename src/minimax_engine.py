@@ -20,6 +20,7 @@ class MinimaxEngine:
         max_depth_extension=2,
         book_path=None,
         use_book=True,
+        uci_mode=False,
     ):
         """
         Initialize the engine.
@@ -30,6 +31,7 @@ class MinimaxEngine:
         :param max_depth_extension: Maximum additional depth allowed through extensions
         :param book_path: Path to the opening book file
         :param use_book: Whether to use the opening book
+        :param uci_mode: Whether to operate in UCI mode (output UCI info)
         """
         self.max_depth = depth
         self.time_limit = time_limit
@@ -38,6 +40,8 @@ class MinimaxEngine:
         self.transposition_table = TranspositionTable(size_mb=tt_size_mb)
         self.opening_book = OpeningBook(book_path) if use_book else None
         self.use_book = use_book
+        self.uci_mode = uci_mode
+        self.nodes_searched = 0
 
     def get_move(self, board, time_limit=None):
         """
@@ -51,17 +55,23 @@ class MinimaxEngine:
         if self.use_book and self.opening_book and self.opening_book.is_enabled():
             book_move = self.opening_book.get_move(board)
             if book_move:
-                print(f"Book Move: {board.san(book_move)}")
+                if self.uci_mode:
+                    print("info string Using opening book")
+                else:
+                    print(f"Book Move: {board.san(book_move)}")
                 return book_move
 
         # Fall back to search if no book move or book is disabled
         # Use instance time limit if no override is provided
         actual_time_limit = time_limit if time_limit is not None else self.time_limit
 
-        print(
-            f"Thinking... (Max Depth: {self.max_depth}, Dynamic Depth: {self.dynamic_depth})"
-        )
+        if not self.uci_mode:
+            print(
+                f"Thinking... (Max Depth: {self.max_depth}, Dynamic Depth: {self.dynamic_depth})"
+            )
+
         start_time = time.time()
+        self.nodes_searched = 0  # Reset node count
 
         # Use iterative deepening to find the best move
         best_move, value, reached_depth = iterative_deepening_search(
@@ -71,15 +81,24 @@ class MinimaxEngine:
             self.transposition_table,
             self.dynamic_depth,
             self.max_depth_extension,
+            uci_mode=self.uci_mode,
+            engine=self,
         )
 
         end_time = time.time()
         thinking_time = end_time - start_time
 
-        print(f"Best Move: {board.san(best_move)}")
-        print(f"Evaluation Score: {value}")
-        print(f"Depth Reached: {reached_depth}")
-        print(f"Thinking Time: {thinking_time:.2f} seconds")
+        if not self.uci_mode:
+            print(f"Best Move: {board.san(best_move)}")
+            print(f"Evaluation Score: {value}")
+            print(f"Depth Reached: {reached_depth}")
+            print(f"Thinking Time: {thinking_time:.2f} seconds")
+        else:
+            # Final UCI info output
+            nps = int(self.nodes_searched / thinking_time) if thinking_time > 0 else 0
+            print(
+                f"info depth {reached_depth} score cp {value} time {int(thinking_time*1000)} nodes {self.nodes_searched} nps {nps} pv {best_move.uci()}"
+            )
 
         return best_move
 
@@ -98,3 +117,22 @@ class MinimaxEngine:
         return min(
             remaining_time * 0.25, base_time * 1.5
         )  # Never use more than 25% of remaining time
+
+    def report_search_info(self, depth, score, move, nodes, time_spent_ms):
+        """
+        Report search information in UCI format
+        :param depth: Current search depth
+        :param score: Evaluation score in centipawns
+        :param move: Current best move
+        :param nodes: Number of nodes searched
+        :param time_spent_ms: Time spent in milliseconds
+        """
+        if self.uci_mode:
+            nps = int(nodes / (time_spent_ms / 1000)) if time_spent_ms > 0 else 0
+            print(
+                f"info depth {depth} score cp {score} time {time_spent_ms} nodes {nodes} nps {nps} pv {move.uci()}"
+            )
+
+    def increment_nodes(self):
+        """Increment the node counter"""
+        self.nodes_searched += 1

@@ -51,6 +51,27 @@ poetry run python main.py
 poetry run python main.py custom_config.yml
 ```
 
+### UCI Mode (Universal Chess Interface)
+
+ChessBot implements the UCI protocol, allowing it to be used with chess GUIs and platforms like lichess-bot.
+
+```bash
+# Run ChessBot in UCI mode
+poetry run chessbot-uci
+
+# Or directly using the script
+python chessbot_uci.py
+```
+
+For use with lichess-bot, configure your `config.yml` in the lichess-bot repository:
+
+```yaml
+engine:
+  dir: "/path/to/chessbot/"
+  name: "python chessbot_uci.py"  # Or "poetry run chessbot-uci" if using poetry
+  working_dir: "/path/to/chessbot/"
+```
+
 ### Lichess Bot Mode
 
 ```bash
@@ -142,8 +163,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [x] Alpha-beta pruning
   - [x] Transposition tables
 
-- [ ] **Lichess Integration**: Play games automatically on Lichess through the Lichess Bot API
-  - [ ] API authentication
+- [x] **Lichess Integration**: Play games automatically on Lichess through the Lichess Bot API
+  - [x] UCI protocol implementation
   - [ ] Game acceptance
   - [ ] Automatic move submission
   - [ ] Rating-based matching
