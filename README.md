@@ -185,6 +185,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - [ ] Pawn structure
   - [ ] Mobility
 
+- [ ] **Advanced Search Optimizations**:
+  - [x] Quiescence search
+  - [ ] Null move pruning
+  - [ ] Late move reduction
+
 ### Current Progress
 
-Completed: 3/5 main features
+Completed: 3/6 main features
