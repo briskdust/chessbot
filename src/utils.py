@@ -204,6 +204,8 @@ def minimax(
     max_depth_extension=2,
     uci_mode=False,
     engine=None,
+    use_quiescence=True,
+    max_q_depth=5,
 ):
     """
     Minimax algorithm with Alpha-Beta pruning and transposition table.
@@ -217,6 +219,8 @@ def minimax(
     :param max_depth_extension: Maximum additional depth allowed through extensions
     :param uci_mode: Whether to output UCI protocol information
     :param engine: Reference to the engine for node counting
+    :param use_quiescence: Whether to use quiescence search at leaf nodes
+    :param max_q_depth: Maximum depth for quiescence search
     :return: Evaluation score for the board
     """
     # Count this node
@@ -237,8 +241,17 @@ def minimax(
             return tt_entry["score"]
 
     # Check for terminal conditions
-    if depth <= 0 or board.is_game_over():
+    if board.is_game_over():
         return evaluate_board(board)
+
+    # If we've reached our depth limit, perform quiescence search
+    if depth <= 0:
+        if use_quiescence:
+            return quiescence_search(
+                board, alpha, beta, maximizing_player, tt, engine, max_q_depth
+            )
+        else:
+            return evaluate_board(board)
 
     legal_moves = list(board.legal_moves)
     best_move = None
@@ -273,6 +286,8 @@ def minimax(
                 max_depth_extension - extension,
                 uci_mode,
                 engine,
+                use_quiescence,
+                max_q_depth,
             )
             board.pop()
 
@@ -316,6 +331,8 @@ def minimax(
                 max_depth_extension - extension,
                 uci_mode,
                 engine,
+                use_quiescence,
+                max_q_depth,
             )
             board.pop()
 
@@ -344,6 +361,8 @@ def find_best_move(
     max_depth_extension=2,
     uci_mode=False,
     engine=None,
+    use_quiescence=True,
+    max_q_depth=5,
 ):
     """
     Find the best move using minimax algorithm with Alpha-Beta pruning and transposition table.
@@ -354,6 +373,8 @@ def find_best_move(
     :param max_depth_extension: Maximum additional depth allowed through extensions
     :param uci_mode: Whether to output UCI protocol information
     :param engine: Reference to the engine for node counting
+    :param use_quiescence: Whether to use quiescence search at leaf nodes
+    :param max_q_depth: Maximum depth for quiescence search
     :return: Best move and its evaluation score
     """
     if tt is None:
@@ -401,6 +422,8 @@ def find_best_move(
             max_depth_extension - extension,
             uci_mode,
             engine,
+            use_quiescence,
+            max_q_depth,
         )
 
         board.pop()
@@ -429,6 +452,8 @@ def iterative_deepening_search(
     max_depth_extension=2,
     uci_mode=False,
     engine=None,
+    use_quiescence=True,
+    max_q_depth=5,
 ):
     """
     Perform iterative deepening search to find the best move.
@@ -442,6 +467,8 @@ def iterative_deepening_search(
     :param max_depth_extension: Maximum additional depth allowed through extensions
     :param uci_mode: Whether to output UCI protocol information
     :param engine: Reference to the engine for node counting and info reporting
+    :param use_quiescence: Whether to use quiescence search at leaf nodes
+    :param max_q_depth: Maximum depth for quiescence search
     :return: Best move, its evaluation score, and actual depth reached
     """
     if tt is None:
@@ -475,6 +502,8 @@ def iterative_deepening_search(
             max_depth_extension,
             uci_mode=uci_mode,
             engine=engine,
+            use_quiescence=use_quiescence,
+            max_q_depth=max_q_depth,
         )
 
         # Update our best move
@@ -586,3 +615,144 @@ class OpeningBook:
         :return: True if the opening book is enabled and file exists
         """
         return self.enabled
+
+
+def quiescence_search(
+    board, alpha, beta, maximizing_player, tt, engine=None, max_q_depth=5
+):
+    """
+    Quiescence search to resolve tactical sequences beyond the regular search depth.
+    This focuses on captures and checks to reach a "quiet" position before evaluation.
+
+    :param board: Current board state
+    :param alpha: Alpha value (best already explored option for MAX)
+    :param beta: Beta value (best already explored option for MIN)
+    :param maximizing_player: True if it's the maximizing player's turn
+    :param tt: Transposition table
+    :param engine: Reference to the engine for node counting
+    :param max_q_depth: Maximum additional depth for quiescence search
+    :return: Evaluation score for the board
+    """
+    # Count this node
+    if engine:
+        engine.increment_nodes()
+
+    # Check transposition table
+    tt_entry = tt.lookup(board)
+    if tt_entry and tt_entry["flag"] == EXACT:
+        return tt_entry["score"]
+
+    # Stand-pat evaluation (evaluate without any moves)
+    stand_pat = evaluate_board(board)
+
+    # Fail-hard beta cutoff
+    if maximizing_player and stand_pat >= beta:
+        return beta
+    if not maximizing_player and stand_pat <= alpha:
+        return alpha
+
+    # Update alpha if stand-pat is better
+    if maximizing_player and stand_pat > alpha:
+        alpha = stand_pat
+    if not maximizing_player and stand_pat < beta:
+        beta = stand_pat
+
+    # If max_q_depth reached, return stand-pat evaluation
+    if max_q_depth <= 0:
+        return stand_pat
+
+    # Generate only captures and checks
+    legal_moves = list(board.legal_moves)
+    # Filter to keep only captures (and potentially checks)
+    captures = [move for move in legal_moves if board.is_capture(move)]
+
+    # Check for checks separately to avoid overhead when there are captures to look at
+    if not captures:
+        # Look for checks only if no captures exist
+        checks = []
+        for move in legal_moves:
+            board.push(move)
+            is_check = board.is_check()
+            board.pop()
+            if is_check:
+                checks.append(move)
+        # Add checks to the moves to consider
+        captures.extend(checks)
+
+    # If no captures or checks, return stand-pat
+    if not captures:
+        return stand_pat
+
+    # Order moves by MVV-LVA (Most Valuable Victim - Least Valuable Attacker)
+    captures.sort(key=lambda move: mvv_lva_score(board, move), reverse=True)
+
+    if maximizing_player:
+        for move in captures:
+            board.push(move)
+            score = quiescence_search(
+                board, alpha, beta, False, tt, engine, max_q_depth - 1
+            )
+            board.pop()
+
+            if score >= beta:
+                return beta  # Fail-hard beta cutoff
+            if score > alpha:
+                alpha = score
+
+        return alpha
+    else:
+        for move in captures:
+            board.push(move)
+            score = quiescence_search(
+                board, alpha, beta, True, tt, engine, max_q_depth - 1
+            )
+            board.pop()
+
+            if score <= alpha:
+                return alpha  # Fail-hard alpha cutoff
+            if score < beta:
+                beta = score
+
+        return beta
+
+
+def mvv_lva_score(board, move):
+    """
+    Calculate the MVV-LVA (Most Valuable Victim - Least Valuable Attacker) score for a move.
+    This is used to order capture moves in quiescence search.
+
+    :param board: Current board state
+    :param move: The move to evaluate
+    :return: MVV-LVA score (higher means more promising capture)
+    """
+    piece_values = {
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
+        chess.KING: 100,  # Very high value for king captures
+    }
+
+    # If it's not a capture, return lowest priority
+    if not board.is_capture(move):
+        return -1
+
+    # For en passant captures
+    if board.is_en_passant(move):
+        # Pawn captures pawn
+        return piece_values[chess.PAWN] * 10 - piece_values[chess.PAWN]
+
+    # Get victim value (the captured piece)
+    victim_square = move.to_square
+    victim = board.piece_at(victim_square)
+    victim_value = piece_values[victim.piece_type] if victim else 0
+
+    # Get attacker value
+    attacker_square = move.from_square
+    attacker = board.piece_at(attacker_square)
+    attacker_value = piece_values[attacker.piece_type] if attacker else 0
+
+    # Calculate MVV-LVA score: 10 * victim value - attacker value
+    # This prioritizes capturing valuable pieces with less valuable pieces
+    return victim_value * 10 - attacker_value

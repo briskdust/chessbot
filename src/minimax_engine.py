@@ -21,6 +21,8 @@ class MinimaxEngine:
         book_path=None,
         use_book=True,
         uci_mode=False,
+        use_quiescence=True,
+        max_q_depth=5,
     ):
         """
         Initialize the engine.
@@ -32,6 +34,8 @@ class MinimaxEngine:
         :param book_path: Path to the opening book file
         :param use_book: Whether to use the opening book
         :param uci_mode: Whether to operate in UCI mode (output UCI info)
+        :param use_quiescence: Whether to use quiescence search at leaf nodes
+        :param max_q_depth: Maximum depth for quiescence search
         """
         self.max_depth = depth
         self.time_limit = time_limit
@@ -41,6 +45,8 @@ class MinimaxEngine:
         self.opening_book = OpeningBook(book_path) if use_book else None
         self.use_book = use_book
         self.uci_mode = uci_mode
+        self.use_quiescence = use_quiescence
+        self.max_q_depth = max_q_depth
         self.nodes_searched = 0
 
     def get_move(self, board, time_limit=None):
@@ -67,7 +73,7 @@ class MinimaxEngine:
 
         if not self.uci_mode:
             print(
-                f"Thinking... (Max Depth: {self.max_depth}, Dynamic Depth: {self.dynamic_depth})"
+                f"Thinking... (Max Depth: {self.max_depth}, Dynamic Depth: {self.dynamic_depth}, Quiescence: {self.use_quiescence})"
             )
 
         start_time = time.time()
@@ -83,6 +89,8 @@ class MinimaxEngine:
             self.max_depth_extension,
             uci_mode=self.uci_mode,
             engine=self,
+            use_quiescence=self.use_quiescence,
+            max_q_depth=self.max_q_depth,
         )
 
         end_time = time.time()
