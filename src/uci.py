@@ -30,6 +30,8 @@ class UCIEngine:
             "TimeLimit": 5000,  # In milliseconds
             "UseQuiescence": True,  # Whether to use quiescence search
             "MaxQDepth": 5,  # Maximum quiescence search depth
+            "UseNullMove": True,  # Whether to use null move pruning
+            "NullMoveReduction": 3,  # Depth reduction (R) for null move pruning
         }
 
     def initialize_engine(self):
@@ -55,6 +57,8 @@ class UCIEngine:
             uci_mode=True,
             use_quiescence=self.options["UseQuiescence"],
             max_q_depth=self.options["MaxQDepth"],
+            use_null_move=self.options["UseNullMove"],
+            null_move_reduction=self.options["NullMoveReduction"],
         )
 
     def uci(self):
@@ -74,6 +78,8 @@ class UCIEngine:
         print("option name TimeLimit type spin default 5000 min 100 max 60000")
         print("option name UseQuiescence type check default true")
         print("option name MaxQDepth type spin default 5 min 0 max 10")
+        print("option name UseNullMove type check default true")
+        print("option name NullMoveReduction type spin default 3 min 2 max 4")
 
         print("uciok")
 
@@ -97,6 +103,10 @@ class UCIEngine:
             self.options["UseQuiescence"] = value.lower() == "true"
         elif name == "MaxQDepth":
             self.options["MaxQDepth"] = int(value)
+        elif name == "UseNullMove":
+            self.options["UseNullMove"] = value.lower() == "true"
+        elif name == "NullMoveReduction":
+            self.options["NullMoveReduction"] = int(value)
         else:
             print(f"info string Unknown option: {name}")
 
