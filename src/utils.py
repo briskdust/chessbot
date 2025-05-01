@@ -202,6 +202,8 @@ def minimax(
     tt,
     dynamic_depth=True,
     max_depth_extension=2,
+    uci_mode=False,
+    engine=None,
 ):
     """
     Minimax algorithm with Alpha-Beta pruning and transposition table.
@@ -213,8 +215,13 @@ def minimax(
     :param tt: Transposition table
     :param dynamic_depth: Whether to use dynamic depth adjustment
     :param max_depth_extension: Maximum additional depth allowed through extensions
+    :param uci_mode: Whether to output UCI protocol information
+    :param engine: Reference to the engine for node counting
     :return: Evaluation score for the board
     """
+    # Count this node
+    if engine:
+        engine.increment_nodes()
 
     # Check transposition table
     tt_entry = tt.lookup(board)
@@ -264,6 +271,8 @@ def minimax(
                 tt,
                 dynamic_depth,
                 max_depth_extension - extension,
+                uci_mode,
+                engine,
             )
             board.pop()
 
@@ -305,6 +314,8 @@ def minimax(
                 tt,
                 dynamic_depth,
                 max_depth_extension - extension,
+                uci_mode,
+                engine,
             )
             board.pop()
 
@@ -325,7 +336,15 @@ def minimax(
         return best_value
 
 
-def find_best_move(board, depth, tt=None, dynamic_depth=True, max_depth_extension=2):
+def find_best_move(
+    board,
+    depth,
+    tt=None,
+    dynamic_depth=True,
+    max_depth_extension=2,
+    uci_mode=False,
+    engine=None,
+):
     """
     Find the best move using minimax algorithm with Alpha-Beta pruning and transposition table.
     :param board: Current board state
@@ -333,6 +352,8 @@ def find_best_move(board, depth, tt=None, dynamic_depth=True, max_depth_extensio
     :param tt: Transposition table
     :param dynamic_depth: Whether to use dynamic depth adjustment
     :param max_depth_extension: Maximum additional depth allowed through extensions
+    :param uci_mode: Whether to output UCI protocol information
+    :param engine: Reference to the engine for node counting
     :return: Best move and its evaluation score
     """
     if tt is None:
@@ -356,6 +377,10 @@ def find_best_move(board, depth, tt=None, dynamic_depth=True, max_depth_extensio
     for move in legal_moves:
         board.push(move)
 
+        # Count this node
+        if engine:
+            engine.increment_nodes()
+
         # Dynamic depth adjustment with limit
         extension = 0
         if (
@@ -374,6 +399,8 @@ def find_best_move(board, depth, tt=None, dynamic_depth=True, max_depth_extensio
             tt,
             dynamic_depth,
             max_depth_extension - extension,
+            uci_mode,
+            engine,
         )
 
         board.pop()
@@ -400,6 +427,8 @@ def iterative_deepening_search(
     tt=None,
     dynamic_depth=True,
     max_depth_extension=2,
+    uci_mode=False,
+    engine=None,
 ):
     """
     Perform iterative deepening search to find the best move.
@@ -411,6 +440,8 @@ def iterative_deepening_search(
     :param tt: Transposition table
     :param dynamic_depth: Whether to use dynamic depth adjustment
     :param max_depth_extension: Maximum additional depth allowed through extensions
+    :param uci_mode: Whether to output UCI protocol information
+    :param engine: Reference to the engine for node counting and info reporting
     :return: Best move, its evaluation score, and actual depth reached
     """
     if tt is None:
@@ -429,19 +460,34 @@ def iterative_deepening_search(
     # Start with depth 1 and iteratively increase
     for current_depth in range(1, max_depth + 1):
         # Check if we've exceeded our time limit
-        if time_limit and time.time() - start_time > time_limit * 0.8:
+        elapsed = time.time() - start_time
+        if time_limit and elapsed > time_limit * 0.8:
             # Return the best move from the previous iteration
             # We don't want to use partial results from an incomplete search
             break
 
+        # Perform search at current depth
         move, value = find_best_move(
-            board, current_depth, tt, dynamic_depth, max_depth_extension
+            board,
+            current_depth,
+            tt,
+            dynamic_depth,
+            max_depth_extension,
+            uci_mode=uci_mode,
+            engine=engine,
         )
 
         # Update our best move
         best_move = move
         best_value = value
         reached_depth = current_depth
+
+        # Report progress in UCI format
+        if uci_mode and engine:
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            engine.report_search_info(
+                current_depth, value, move, engine.nodes_searched, elapsed_ms
+            )
 
         # Early termination conditions
         # If we found a checkmate, no need to search deeper

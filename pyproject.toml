@@ -11,6 +11,9 @@ python-chess = "^1.999"
 black = "^25.1.0"
 pyyaml = "^6.0"
 
+[tool.poetry.scripts]
+chessbot = "main:play_game"
+chessbot-uci = "src.uci:main"
 
 [build-system]
 requires = ["poetry-core"]
