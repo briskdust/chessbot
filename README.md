@@ -165,7 +165,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [x] **Lichess Integration**: Play games automatically on Lichess through the Lichess Bot API
   - [x] UCI protocol implementation
-  - [ ] Game acceptance
   - [ ] Automatic move submission
   - [ ] Rating-based matching
 
@@ -187,7 +186,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [ ] **Advanced Search Optimizations**:
   - [x] Quiescence search
-  - [ ] Null move pruning
+  - [x] Null move pruning
   - [ ] Late move reduction
 
 ### Current Progress

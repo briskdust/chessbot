@@ -206,6 +206,9 @@ def minimax(
     engine=None,
     use_quiescence=True,
     max_q_depth=5,
+    use_null_move=True,
+    null_move_reduction=3,
+    allow_null=True,  # Whether null moves are allowed in this search branch
 ):
     """
     Minimax algorithm with Alpha-Beta pruning and transposition table.
@@ -221,6 +224,9 @@ def minimax(
     :param engine: Reference to the engine for node counting
     :param use_quiescence: Whether to use quiescence search at leaf nodes
     :param max_q_depth: Maximum depth for quiescence search
+    :param use_null_move: Whether to use null move pruning
+    :param null_move_reduction: Depth reduction for null move pruning (R value)
+    :param allow_null: Whether to allow null moves in this branch (prevents consecutive null moves)
     :return: Evaluation score for the board
     """
     # Count this node
@@ -252,6 +258,52 @@ def minimax(
             )
         else:
             return evaluate_board(board)
+
+    # Try Null Move Pruning
+    # Only try if:
+    # 1. Null move pruning is enabled
+    # 2. We're not in check
+    # 3. We haven't just made a null move
+    # 4. We have sufficient depth to make pruning worthwhile
+    # 5. We're not in a potential zugzwang position (few pieces left)
+    if (
+        use_null_move
+        and allow_null
+        and depth >= 3
+        and not board.is_check()
+        and not is_endgame_position(board)
+        and not likely_zugzwang(board)
+    ):
+        # Make a null move (switch sides without making a move)
+        board.push(chess.Move.null())
+        
+        # Search with reduced depth - use R=2 or R=3 typically
+        # We use a zero window search since we only care if score exceeds beta
+        null_score = -minimax(
+            board,
+            depth - 1 - null_move_reduction,  # Reduce depth by R
+            -beta,
+            -beta + 1,  # Zero window search
+            not maximizing_player,
+            tt,
+            dynamic_depth,
+            max_depth_extension,
+            uci_mode,
+            engine,
+            use_quiescence,
+            max_q_depth,
+            use_null_move,
+            null_move_reduction,
+            False,  # Don't allow consecutive null moves
+        )
+        
+        # Undo the null move
+        board.pop()
+        
+        # If the position is still good even after giving opponent a free move,
+        # we can assume it's very good and prune this branch
+        if null_score >= beta:
+            return beta  # Beta cutoff
 
     legal_moves = list(board.legal_moves)
     best_move = None
@@ -288,6 +340,9 @@ def minimax(
                 engine,
                 use_quiescence,
                 max_q_depth,
+                use_null_move,
+                null_move_reduction,
+                True,  # Allow null moves again in child nodes
             )
             board.pop()
 
@@ -333,6 +388,9 @@ def minimax(
                 engine,
                 use_quiescence,
                 max_q_depth,
+                use_null_move,
+                null_move_reduction,
+                True,  # Allow null moves again in child nodes
             )
             board.pop()
 
@@ -363,6 +421,8 @@ def find_best_move(
     engine=None,
     use_quiescence=True,
     max_q_depth=5,
+    use_null_move=True,
+    null_move_reduction=3,
 ):
     """
     Find the best move using minimax algorithm with Alpha-Beta pruning and transposition table.
@@ -375,6 +435,8 @@ def find_best_move(
     :param engine: Reference to the engine for node counting
     :param use_quiescence: Whether to use quiescence search at leaf nodes
     :param max_q_depth: Maximum depth for quiescence search
+    :param use_null_move: Whether to use null move pruning
+    :param null_move_reduction: Depth reduction for null move pruning
     :return: Best move and its evaluation score
     """
     if tt is None:
@@ -424,6 +486,9 @@ def find_best_move(
             engine,
             use_quiescence,
             max_q_depth,
+            use_null_move,
+            null_move_reduction,
+            True,  # Allow null moves in child nodes
         )
 
         board.pop()
@@ -454,6 +519,8 @@ def iterative_deepening_search(
     engine=None,
     use_quiescence=True,
     max_q_depth=5,
+    use_null_move=True,
+    null_move_reduction=3,
 ):
     """
     Perform iterative deepening search to find the best move.
@@ -469,6 +536,8 @@ def iterative_deepening_search(
     :param engine: Reference to the engine for node counting and info reporting
     :param use_quiescence: Whether to use quiescence search at leaf nodes
     :param max_q_depth: Maximum depth for quiescence search
+    :param use_null_move: Whether to use null move pruning
+    :param null_move_reduction: Depth reduction for null move pruning
     :return: Best move, its evaluation score, and actual depth reached
     """
     if tt is None:
@@ -504,6 +573,8 @@ def iterative_deepening_search(
             engine=engine,
             use_quiescence=use_quiescence,
             max_q_depth=max_q_depth,
+            use_null_move=use_null_move,
+            null_move_reduction=null_move_reduction,
         )
 
         # Update our best move
@@ -784,3 +855,66 @@ def mvv_lva_score(board, move):
     # Calculate MVV-LVA score: 10 * victim value - attacker value
     # This prioritizes capturing valuable pieces with less valuable pieces
     return victim_value * 10 - attacker_value
+
+
+def is_endgame_position(board):
+    """
+    Determine if position is an endgame position.
+    We consider a position to be an endgame if:
+    1. No queens on the board, or
+    2. Both sides have <= 1 piece besides king and pawns
+    
+    :param board: Current board state
+    :return: True if it's an endgame position, False otherwise
+    """
+    # Count pieces
+    white_queens = len(board.pieces(chess.QUEEN, chess.WHITE))
+    black_queens = len(board.pieces(chess.QUEEN, chess.BLACK))
+    white_pieces = (
+        len(board.pieces(chess.KNIGHT, chess.WHITE)) +
+        len(board.pieces(chess.BISHOP, chess.WHITE)) +
+        len(board.pieces(chess.ROOK, chess.WHITE))
+    )
+    black_pieces = (
+        len(board.pieces(chess.KNIGHT, chess.BLACK)) +
+        len(board.pieces(chess.BISHOP, chess.BLACK)) +
+        len(board.pieces(chess.ROOK, chess.BLACK))
+    )
+    
+    # Endgame conditions
+    no_queens = white_queens + black_queens == 0
+    few_pieces = white_pieces <= 1 and black_pieces <= 1
+    
+    return no_queens or few_pieces
+
+
+def likely_zugzwang(board):
+    """
+    Check if a position is likely to be a zugzwang position.
+    Zugzwang is a situation where any move will worsen the position.
+    This is common in endgames, especially king and pawn endgames.
+    
+    :param board: Current board state
+    :return: True if position is likely a zugzwang, False otherwise
+    """
+    # King and pawn endgames are classic zugzwang positions
+    if is_endgame_position(board):
+        white_pieces = sum(1 for _ in board.pieces(chess.KNIGHT, chess.WHITE)) + \
+                       sum(1 for _ in board.pieces(chess.BISHOP, chess.WHITE)) + \
+                       sum(1 for _ in board.pieces(chess.ROOK, chess.WHITE)) + \
+                       sum(1 for _ in board.pieces(chess.QUEEN, chess.WHITE))
+        
+        black_pieces = sum(1 for _ in board.pieces(chess.KNIGHT, chess.BLACK)) + \
+                       sum(1 for _ in board.pieces(chess.BISHOP, chess.BLACK)) + \
+                       sum(1 for _ in board.pieces(chess.ROOK, chess.BLACK)) + \
+                       sum(1 for _ in board.pieces(chess.QUEEN, chess.BLACK))
+        
+        # Pure king+pawn endgames
+        if white_pieces == 0 and black_pieces == 0:
+            return True
+            
+        # Simple endgames with very few pieces
+        if white_pieces + black_pieces <= 2:
+            return True
+    
+    return False

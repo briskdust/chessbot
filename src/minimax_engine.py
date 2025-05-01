@@ -23,6 +23,8 @@ class MinimaxEngine:
         uci_mode=False,
         use_quiescence=True,
         max_q_depth=5,
+        use_null_move=True,
+        null_move_reduction=3,
     ):
         """
         Initialize the engine.
@@ -36,6 +38,8 @@ class MinimaxEngine:
         :param uci_mode: Whether to operate in UCI mode (output UCI info)
         :param use_quiescence: Whether to use quiescence search at leaf nodes
         :param max_q_depth: Maximum depth for quiescence search
+        :param use_null_move: Whether to use null move pruning
+        :param null_move_reduction: Depth reduction for null move pruning (R value)
         """
         self.max_depth = depth
         self.time_limit = time_limit
@@ -47,6 +51,8 @@ class MinimaxEngine:
         self.uci_mode = uci_mode
         self.use_quiescence = use_quiescence
         self.max_q_depth = max_q_depth
+        self.use_null_move = use_null_move
+        self.null_move_reduction = null_move_reduction
         self.nodes_searched = 0
 
     def get_move(self, board, time_limit=None):
@@ -73,7 +79,7 @@ class MinimaxEngine:
 
         if not self.uci_mode:
             print(
-                f"Thinking... (Max Depth: {self.max_depth}, Dynamic Depth: {self.dynamic_depth}, Quiescence: {self.use_quiescence})"
+                f"Thinking... (Max Depth: {self.max_depth}, Dynamic Depth: {self.dynamic_depth}, Quiescence: {self.use_quiescence}, Null Move: {self.use_null_move})"
             )
 
         start_time = time.time()
@@ -91,6 +97,8 @@ class MinimaxEngine:
             engine=self,
             use_quiescence=self.use_quiescence,
             max_q_depth=self.max_q_depth,
+            use_null_move=self.use_null_move,
+            null_move_reduction=self.null_move_reduction,
         )
 
         end_time = time.time()
