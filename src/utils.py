@@ -276,7 +276,7 @@ def minimax(
     ):
         # Make a null move (switch sides without making a move)
         board.push(chess.Move.null())
-        
+
         # Search with reduced depth - use R=2 or R=3 typically
         # We use a zero window search since we only care if score exceeds beta
         null_score = -minimax(
@@ -296,10 +296,10 @@ def minimax(
             null_move_reduction,
             False,  # Don't allow consecutive null moves
         )
-        
+
         # Undo the null move
         board.pop()
-        
+
         # If the position is still good even after giving opponent a free move,
         # we can assume it's very good and prune this branch
         if null_score >= beta:
@@ -863,7 +863,7 @@ def is_endgame_position(board):
     We consider a position to be an endgame if:
     1. No queens on the board, or
     2. Both sides have <= 1 piece besides king and pawns
-    
+
     :param board: Current board state
     :return: True if it's an endgame position, False otherwise
     """
@@ -871,20 +871,20 @@ def is_endgame_position(board):
     white_queens = len(board.pieces(chess.QUEEN, chess.WHITE))
     black_queens = len(board.pieces(chess.QUEEN, chess.BLACK))
     white_pieces = (
-        len(board.pieces(chess.KNIGHT, chess.WHITE)) +
-        len(board.pieces(chess.BISHOP, chess.WHITE)) +
-        len(board.pieces(chess.ROOK, chess.WHITE))
+        len(board.pieces(chess.KNIGHT, chess.WHITE))
+        + len(board.pieces(chess.BISHOP, chess.WHITE))
+        + len(board.pieces(chess.ROOK, chess.WHITE))
     )
     black_pieces = (
-        len(board.pieces(chess.KNIGHT, chess.BLACK)) +
-        len(board.pieces(chess.BISHOP, chess.BLACK)) +
-        len(board.pieces(chess.ROOK, chess.BLACK))
+        len(board.pieces(chess.KNIGHT, chess.BLACK))
+        + len(board.pieces(chess.BISHOP, chess.BLACK))
+        + len(board.pieces(chess.ROOK, chess.BLACK))
     )
-    
+
     # Endgame conditions
     no_queens = white_queens + black_queens == 0
     few_pieces = white_pieces <= 1 and black_pieces <= 1
-    
+
     return no_queens or few_pieces
 
 
@@ -893,28 +893,32 @@ def likely_zugzwang(board):
     Check if a position is likely to be a zugzwang position.
     Zugzwang is a situation where any move will worsen the position.
     This is common in endgames, especially king and pawn endgames.
-    
+
     :param board: Current board state
     :return: True if position is likely a zugzwang, False otherwise
     """
     # King and pawn endgames are classic zugzwang positions
     if is_endgame_position(board):
-        white_pieces = sum(1 for _ in board.pieces(chess.KNIGHT, chess.WHITE)) + \
-                       sum(1 for _ in board.pieces(chess.BISHOP, chess.WHITE)) + \
-                       sum(1 for _ in board.pieces(chess.ROOK, chess.WHITE)) + \
-                       sum(1 for _ in board.pieces(chess.QUEEN, chess.WHITE))
-        
-        black_pieces = sum(1 for _ in board.pieces(chess.KNIGHT, chess.BLACK)) + \
-                       sum(1 for _ in board.pieces(chess.BISHOP, chess.BLACK)) + \
-                       sum(1 for _ in board.pieces(chess.ROOK, chess.BLACK)) + \
-                       sum(1 for _ in board.pieces(chess.QUEEN, chess.BLACK))
-        
+        white_pieces = (
+            sum(1 for _ in board.pieces(chess.KNIGHT, chess.WHITE))
+            + sum(1 for _ in board.pieces(chess.BISHOP, chess.WHITE))
+            + sum(1 for _ in board.pieces(chess.ROOK, chess.WHITE))
+            + sum(1 for _ in board.pieces(chess.QUEEN, chess.WHITE))
+        )
+
+        black_pieces = (
+            sum(1 for _ in board.pieces(chess.KNIGHT, chess.BLACK))
+            + sum(1 for _ in board.pieces(chess.BISHOP, chess.BLACK))
+            + sum(1 for _ in board.pieces(chess.ROOK, chess.BLACK))
+            + sum(1 for _ in board.pieces(chess.QUEEN, chess.BLACK))
+        )
+
         # Pure king+pawn endgames
         if white_pieces == 0 and black_pieces == 0:
             return True
-            
+
         # Simple endgames with very few pieces
         if white_pieces + black_pieces <= 2:
             return True
-    
+
     return False
