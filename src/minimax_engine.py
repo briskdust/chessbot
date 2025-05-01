@@ -90,7 +90,7 @@ class MinimaxEngine:
             uci_mode=self.uci_mode,
             engine=self,
             use_quiescence=self.use_quiescence,
-            max_q_depth=self.max_q_depth
+            max_q_depth=self.max_q_depth,
         )
 
         end_time = time.time()

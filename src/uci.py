@@ -29,7 +29,7 @@ class UCIEngine:
             "MaxDepthExtension": 2,
             "TimeLimit": 5000,  # In milliseconds
             "UseQuiescence": True,  # Whether to use quiescence search
-            "MaxQDepth": 5  # Maximum quiescence search depth
+            "MaxQDepth": 5,  # Maximum quiescence search depth
         }
 
     def initialize_engine(self):
@@ -54,7 +54,7 @@ class UCIEngine:
             use_book=self.options["UseOpeningBook"],
             uci_mode=True,
             use_quiescence=self.options["UseQuiescence"],
-            max_q_depth=self.options["MaxQDepth"]
+            max_q_depth=self.options["MaxQDepth"],
         )
 
     def uci(self):
@@ -84,17 +84,17 @@ class UCIEngine:
         elif name == "TranspositionTableSize":
             self.options["TranspositionTableSize"] = int(value)
         elif name == "UseOpeningBook":
-            self.options["UseOpeningBook"] = (value.lower() == "true")
+            self.options["UseOpeningBook"] = value.lower() == "true"
         elif name == "OpeningBookPath":
             self.options["OpeningBookPath"] = value
         elif name == "DynamicDepth":
-            self.options["DynamicDepth"] = (value.lower() == "true")
+            self.options["DynamicDepth"] = value.lower() == "true"
         elif name == "MaxDepthExtension":
             self.options["MaxDepthExtension"] = int(value)
         elif name == "TimeLimit":
             self.options["TimeLimit"] = int(value)
         elif name == "UseQuiescence":
-            self.options["UseQuiescence"] = (value.lower() == "true")
+            self.options["UseQuiescence"] = value.lower() == "true"
         elif name == "MaxQDepth":
             self.options["MaxQDepth"] = int(value)
         else:
