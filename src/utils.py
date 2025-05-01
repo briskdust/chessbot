@@ -639,16 +639,26 @@ def quiescence_search(
 
     # Check transposition table
     tt_entry = tt.lookup(board)
-    if tt_entry and tt_entry["flag"] == EXACT:
-        return tt_entry["score"]
+    if tt_entry and tt_entry["depth"] >= max_q_depth:
+        if tt_entry["flag"] == EXACT:
+            return tt_entry["score"]
+        elif tt_entry["flag"] == LOWERBOUND and tt_entry["score"] > alpha:
+            alpha = tt_entry["score"]
+        elif tt_entry["flag"] == UPPERBOUND and tt_entry["score"] < beta:
+            beta = tt_entry["score"]
+
+        if alpha >= beta:
+            return tt_entry["score"]
 
     # Stand-pat evaluation (evaluate without any moves)
     stand_pat = evaluate_board(board)
 
     # Fail-hard beta cutoff
     if maximizing_player and stand_pat >= beta:
+        tt.store(board, max_q_depth, beta, LOWERBOUND)
         return beta
     if not maximizing_player and stand_pat <= alpha:
+        tt.store(board, max_q_depth, alpha, UPPERBOUND)
         return alpha
 
     # Update alpha if stand-pat is better
@@ -659,6 +669,7 @@ def quiescence_search(
 
     # If max_q_depth reached, return stand-pat evaluation
     if max_q_depth <= 0:
+        tt.store(board, 0, stand_pat, EXACT)
         return stand_pat
 
     # Generate only captures and checks
@@ -681,12 +692,14 @@ def quiescence_search(
 
     # If no captures or checks, return stand-pat
     if not captures:
+        tt.store(board, max_q_depth, stand_pat, EXACT)
         return stand_pat
 
     # Order moves by MVV-LVA (Most Valuable Victim - Least Valuable Attacker)
     captures.sort(key=lambda move: mvv_lva_score(board, move), reverse=True)
 
     if maximizing_player:
+        best_score = stand_pat
         for move in captures:
             board.push(move)
             score = quiescence_search(
@@ -694,13 +707,21 @@ def quiescence_search(
             )
             board.pop()
 
+            if score > best_score:
+                best_score = score
+
             if score >= beta:
+                tt.store(board, max_q_depth, beta, LOWERBOUND)
                 return beta  # Fail-hard beta cutoff
             if score > alpha:
                 alpha = score
 
+        # Store the result in the transposition table
+        flag = EXACT if alpha > stand_pat else UPPERBOUND
+        tt.store(board, max_q_depth, alpha, flag)
         return alpha
     else:
+        best_score = stand_pat
         for move in captures:
             board.push(move)
             score = quiescence_search(
@@ -708,11 +729,18 @@ def quiescence_search(
             )
             board.pop()
 
+            if score < best_score:
+                best_score = score
+
             if score <= alpha:
+                tt.store(board, max_q_depth, alpha, UPPERBOUND)
                 return alpha  # Fail-hard alpha cutoff
             if score < beta:
                 beta = score
 
+        # Store the result in the transposition table
+        flag = EXACT if beta < stand_pat else LOWERBOUND
+        tt.store(board, max_q_depth, beta, flag)
         return beta
 
 
